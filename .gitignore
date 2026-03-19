@@ -1,0 +1,10 @@
+node_modules/
+dist/
+webroot/
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+.cursor/
+*.tgz
