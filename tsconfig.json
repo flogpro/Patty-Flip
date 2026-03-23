@@ -12,5 +12,6 @@
     "baseUrl": ".",
     "paths": { "shared/*": ["server/shared/*"] }
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "exclude": ["src/devvit.tsx"]
 }

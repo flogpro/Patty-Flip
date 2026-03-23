@@ -12,7 +12,11 @@
     "dev:server": "tsx server/local.ts",
     "dev:watch": "vite build --watch",
     "check": "tsc --noEmit",
-    "verify": "npm run check && npm run build"
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test:logic": "tsx server/shared/gameLogic.test.ts",
+    "verify": "npm run lint && npm run format:check && npm run check && npm run test:logic && npm run build"
   },
   "dependencies": {
     "@devvit/public-api": "^0.12.13",
@@ -23,6 +27,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@types/express": "^4.17.21",
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.0",
@@ -30,10 +35,17 @@
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "concurrently": "^9.1.0",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^9.1.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^15.15.0",
     "postcss": "^8.4.47",
+    "prettier": "^3.8.1",
     "tailwindcss": "^3.4.14",
     "tsx": "^4.19.2",
     "typescript": "^5.6.0",
+    "typescript-eslint": "^8.57.1",
     "vite": "^5.4.0"
   },
   "devvit": {

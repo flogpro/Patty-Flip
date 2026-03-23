@@ -63,11 +63,15 @@ export function BurgerStackingGame({ onComplete }: Props) {
   const [stack, setStack] = useState<StackItem[]>([]);
   const [gameOver, setGameOver] = useState<{ bomb: boolean } | null>(null);
   /** When set, bonus round ended; show "Bonus round complete" screen then call onComplete after delay. */
-  const [bonusEnding, setBonusEnding] = useState<{ stackedCount: number; collapsed: boolean } | null>(null);
+  const [bonusEnding, setBonusEnding] = useState<{
+    stackedCount: number;
+    collapsed: boolean;
+  } | null>(null);
   const [milestone, setMilestone] = useState<number | null>(null);
   const [bunX, setBunX] = useState(200);
   const [fallingItems, setFallingItems] = useState<FallingThing[]>([]);
-  const [gameStarted, setGameStarted] = useState(true);
+  /** Game loop always runs once mounted (Round 1 intro is handled in BonusModal). */
+  const gameStarted = true;
   const containerRef = useRef<HTMLDivElement>(null);
   const nextIdRef = useRef(0);
   const startTimeRef = useRef(0);
@@ -142,7 +146,9 @@ export function BurgerStackingGame({ onComplete }: Props) {
         setBunX((x) => Math.max(BUN_HALF, x - BONUS_BUN_MOVE_PX));
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        setBunX((x) => Math.min((el.getBoundingClientRect?.()?.width ?? 300) - BUN_HALF, x + BONUS_BUN_MOVE_PX));
+        setBunX((x) =>
+          Math.min((el.getBoundingClientRect?.()?.width ?? 300) - BUN_HALF, x + BONUS_BUN_MOVE_PX)
+        );
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -167,20 +173,20 @@ export function BurgerStackingGame({ onComplete }: Props) {
   }, [gameStarted]);
 
   // Touch/swipe for bun
-  const onTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartXRef.current = e.touches[0].clientX;
-    touchStartBunXRef.current = bunX;
-  }, [bunX]);
-  const onTouchMove = useCallback(
+  const onTouchStart = useCallback(
     (e: React.TouchEvent) => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const dx = (e.touches[0].clientX - touchStartXRef.current) * SWIPE_SENSITIVITY;
-      const newX = touchStartBunXRef.current + dx;
-      setBunX(Math.max(BUN_HALF, Math.min(rect.width - BUN_HALF, newX)));
+      touchStartXRef.current = e.touches[0].clientX;
+      touchStartBunXRef.current = bunX;
     },
-    []
+    [bunX]
   );
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const dx = (e.touches[0].clientX - touchStartXRef.current) * SWIPE_SENSITIVITY;
+    const newX = touchStartBunXRef.current + dx;
+    setBunX(Math.max(BUN_HALF, Math.min(rect.width - BUN_HALF, newX)));
+  }, []);
 
   // Spawn falling items (read width each spawn so we get correct value after layout)
   useEffect(() => {
@@ -194,7 +200,9 @@ export function BurgerStackingGame({ onComplete }: Props) {
       const id = nextIdRef.current++;
       const x = padding + Math.random() * Math.max(0, w - 2 * padding);
       const isBomb = Math.random() < BONUS_BOMB_CHANCE;
-      const label = isBomb ? BOMB_EMOJI : BONUS_ITEMS[Math.floor(Math.random() * BONUS_ITEMS.length)];
+      const label = isBomb
+        ? BOMB_EMOJI
+        : BONUS_ITEMS[Math.floor(Math.random() * BONUS_ITEMS.length)];
       setFallingItems((prev) => [
         ...prev,
         { id, type: isBomb ? 'bomb' : 'item', label, x, y: TIMER_BAR_HEIGHT },
@@ -249,13 +257,19 @@ export function BurgerStackingGame({ onComplete }: Props) {
       if (endBomb) {
         gameOverRef.current = true;
         setGameOver({ bomb: true });
-        setTimeout(() => setBonusEnding({ stackedCount: stackLengthRef.current, collapsed: true }), 2600);
+        setTimeout(
+          () => setBonusEnding({ stackedCount: stackLengthRef.current, collapsed: true }),
+          2600
+        );
         return;
       }
       if (endCollapse) {
         gameOverRef.current = true;
         setGameOver({ bomb: false });
-        setTimeout(() => setBonusEnding({ stackedCount: stackLengthRef.current, collapsed: true }), 2600);
+        setTimeout(
+          () => setBonusEnding({ stackedCount: stackLengthRef.current, collapsed: true }),
+          2600
+        );
         return;
       }
       rafRef.current = requestAnimationFrame(loop);
@@ -269,7 +283,10 @@ export function BurgerStackingGame({ onComplete }: Props) {
   const showBombFlash = gameOver?.bomb === true;
 
   return (
-    <div className="flex w-full gap-2 rounded-xl overflow-hidden bg-[#1f1b18]/98 min-h-[280px]" style={{ height: '100%', minHeight: 280 }}>
+    <div
+      className="flex w-full gap-2 rounded-xl overflow-hidden bg-[#1f1b18]/98 min-h-[280px]"
+      style={{ height: '100%', minHeight: 280 }}
+    >
       {/* Left: game area - explicit width so it always has space for bun/items */}
       <div
         ref={containerRef}
@@ -280,11 +297,22 @@ export function BurgerStackingGame({ onComplete }: Props) {
       >
         <div
           className="absolute left-0 right-0 flex items-center justify-center shrink-0 z-10 rounded-t-xl border-b border-violet-600/20 border-b-emerald-500/25"
-          style={{ top: 0, height: TIMER_BAR_HEIGHT, background: 'linear-gradient(90deg, rgba(6,78,59,0.35) 0%, rgba(26,22,20,0.95) 25%, rgba(26,22,20,0.95) 100%)' }}
+          style={{
+            top: 0,
+            height: TIMER_BAR_HEIGHT,
+            background:
+              'linear-gradient(90deg, rgba(6,78,59,0.35) 0%, rgba(26,22,20,0.95) 25%, rgba(26,22,20,0.95) 100%)',
+          }}
         >
-          <span className="text-violet-100 font-bold tabular-nums">{Math.ceil(timeLeftMs / 1000)}<span className="text-emerald-300/90">s</span></span>
+          <span className="text-violet-100 font-bold tabular-nums">
+            {Math.ceil(timeLeftMs / 1000)}
+            <span className="text-emerald-300/90">s</span>
+          </span>
         </div>
-        <p className="absolute left-0 right-0 text-center text-violet-300/70 text-[11px] z-10" style={{ top: TIMER_BAR_HEIGHT + 2 }}>
+        <p
+          className="absolute left-0 right-0 text-center text-violet-300/70 text-[11px] z-10"
+          style={{ top: TIMER_BAR_HEIGHT + 2 }}
+        >
           ← Arrow keys or swipe to move bun →
         </p>
 
@@ -310,20 +338,26 @@ export function BurgerStackingGame({ onComplete }: Props) {
           className="absolute bottom-0 flex flex-col items-center z-10"
           style={{ left: bunX - BUN_HALF, width: BUN_WIDTH, paddingBottom: 10 }}
         >
-          <div className="flex flex-col items-center justify-end overflow-hidden" style={{ maxHeight: STACK_MAX_HEIGHT_PX, marginBottom: 2, width: STACK_ITEM_WIDTH_PX }}>
-            {stack.slice().reverse().map((item) => (
-              <div
-                key={item.id}
-                className={`rounded-sm border shrink-0 ${ITEM_STACK_COLOR[item.label] ?? 'bg-violet-800/80 border-violet-600'}`}
-                style={{
-                  width: STACK_ITEM_WIDTH_PX,
-                  height: STACK_ITEM_HEIGHT_PX,
-                  marginBottom: STACK_ITEM_MARGIN_PX,
-                  transform: `translateX(${item.offsetPx}px)`,
-                }}
-                title={item.label}
-              />
-            ))}
+          <div
+            className="flex flex-col items-center justify-end overflow-hidden"
+            style={{ maxHeight: STACK_MAX_HEIGHT_PX, marginBottom: 2, width: STACK_ITEM_WIDTH_PX }}
+          >
+            {stack
+              .slice()
+              .reverse()
+              .map((item) => (
+                <div
+                  key={item.id}
+                  className={`rounded-sm border shrink-0 ${ITEM_STACK_COLOR[item.label] ?? 'bg-violet-800/80 border-violet-600'}`}
+                  style={{
+                    width: STACK_ITEM_WIDTH_PX,
+                    height: STACK_ITEM_HEIGHT_PX,
+                    marginBottom: STACK_ITEM_MARGIN_PX,
+                    transform: `translateX(${item.offsetPx}px)`,
+                  }}
+                  title={item.label}
+                />
+              ))}
           </div>
           <div
             className="rounded-b-full bg-amber-200 border-2 border-amber-400 shrink-0 w-full"
@@ -333,13 +367,17 @@ export function BurgerStackingGame({ onComplete }: Props) {
         </div>
 
         {/* Bomb flash overlay */}
-        {showBombFlash && <div className="absolute inset-0 bg-red-500/40 bonus-bomb-flash z-[35] pointer-events-none rounded-xl" />}
+        {showBombFlash && (
+          <div className="absolute inset-0 bg-red-500/40 bonus-bomb-flash z-[35] pointer-events-none rounded-xl" />
+        )}
 
         {/* Game over message (bomb/collapse) - stays ~2.6s then transitions to bonus-end screen */}
         {gameOver && !bonusEnding && (
           <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/70 backdrop-blur-sm z-40 bonus-fade-in">
             <p className="text-violet-100 font-semibold text-center px-4 text-sm sm:text-base">
-              {gameOver.bomb ? 'Bomb hit the bun! Multiplier 1× for this round.' : 'Stack fell! Multiplier 1× for this round.'}
+              {gameOver.bomb
+                ? 'Bomb hit the bun! Multiplier 1× for this round.'
+                : 'Stack fell! Multiplier 1× for this round.'}
             </p>
           </div>
         )}
@@ -347,9 +385,11 @@ export function BurgerStackingGame({ onComplete }: Props) {
         {/* Bonus round complete: visual cue before returning to game */}
         {bonusEnding && (
           <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl bg-black/80 backdrop-blur-md z-50 bonus-end-screen">
-            <p className="text-violet-100 font-bold text-lg sm:text-xl mb-1">Bonus round complete!</p>
+            <p className="text-violet-100 font-bold text-lg sm:text-xl mb-1">
+              Bonus round complete!
+            </p>
             <p className="text-violet-200/90 text-sm mb-3">
-              Multiplier: {(bonusEnding.collapsed ? 1 : 1 + bonusEnding.stackedCount)}×
+              Multiplier: {bonusEnding.collapsed ? 1 : 1 + bonusEnding.stackedCount}×
             </p>
             <p className="text-violet-200/70 text-xs animate-pulse">Returning to game…</p>
           </div>

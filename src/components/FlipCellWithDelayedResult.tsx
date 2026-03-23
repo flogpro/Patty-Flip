@@ -32,7 +32,11 @@ export const FlipCellWithDelayedResult = memo(function FlipCellWithDelayedResult
     <div className="w-10 h-10 flex items-center justify-center relative">
       <div
         className={`rounded-full p-0.5 ring-2 ${
-          revealed ? (correct ? 'ring-emerald-400 bg-emerald-400/30' : 'ring-rose-400 bg-rose-400/30') : 'ring-violet-900/35 bg-transparent'
+          revealed
+            ? correct
+              ? 'ring-emerald-400 bg-emerald-400/30'
+              : 'ring-rose-400 bg-rose-400/30'
+            : 'ring-violet-900/35 bg-transparent'
         }`}
         title={revealed ? (correct ? 'Correct' : 'Wrong') : undefined}
       >

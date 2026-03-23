@@ -26,7 +26,10 @@ export const PattyFlip = memo(function PattyFlip({ outcome, delayMs = 0 }: Patty
     return () => clearTimeout(t);
   }, [outcome, delayMs]);
   return (
-    <div className="w-10 h-10 flex items-center justify-center overflow-hidden rounded-full" style={{ perspective: '100px' }}>
+    <div
+      className="w-10 h-10 flex items-center justify-center overflow-hidden rounded-full"
+      style={{ perspective: '100px' }}
+    >
       <div
         className={`relative w-10 h-10 rounded-full transition-transform ease-out ${hasStarted ? 'duration-[700ms]' : 'duration-0'}`}
         style={{

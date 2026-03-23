@@ -21,13 +21,7 @@ export type TurnResult = {
   bonusMultiplier?: number;
 };
 
-export type GamePhase =
-  | 'idle'
-  | 'selectGrid'
-  | 'guessing'
-  | 'flipping'
-  | 'turnSummary'
-  | 'runOver';
+export type GamePhase = 'idle' | 'selectGrid' | 'guessing' | 'flipping' | 'runOver';
 
 export type GameProps = {
   onError: (msg: string | null) => void;

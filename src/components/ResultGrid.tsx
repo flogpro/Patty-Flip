@@ -5,7 +5,10 @@ import { FlipCellWithDelayedResult } from './FlipCellWithDelayedResult';
 
 function InactiveCell() {
   return (
-    <div className="w-10 h-10 rounded-full bg-violet-950/20 border border-violet-900/20 flex-shrink-0" aria-hidden />
+    <div
+      className="w-10 h-10 rounded-full bg-violet-950/20 border border-violet-900/20 flex-shrink-0"
+      aria-hidden
+    />
   );
 }
 
@@ -67,13 +70,12 @@ export function ResultGrid({
               </div>
             );
           }
-          if ((phase === 'flipping' || phase === 'turnSummary') && turnResult) {
+          if (phase === 'flipping' && turnResult) {
             const out = turnResult.outcomes[index];
             const correct = guesses[index] === out;
-            const delay = !suspensefulFlip || phase === 'turnSummary' ? 0 : index * FLIP_STAGGER_MS;
-            const revealAfterMs =
-              suspensefulFlip && phase === 'flipping' ? delay + FLIP_DURATION_MS : 0;
-            const cellOnReveal = suspensefulFlip && phase === 'flipping' && onReveal ? onReveal : undefined;
+            const delay = !suspensefulFlip ? 0 : index * FLIP_STAGGER_MS;
+            const revealAfterMs = suspensefulFlip ? delay + FLIP_DURATION_MS : 0;
+            const cellOnReveal = suspensefulFlip && onReveal ? onReveal : undefined;
             return (
               <FlipCellWithDelayedResult
                 key={`${r}-${c}`}

@@ -31,7 +31,7 @@ export function LayoutGrid({ activeCells, rowCounts, colCounts, onToggleCell }: 
         <Fragment key={`row-${r}`}>
           <div
             className={`w-10 h-10 flex items-center justify-center text-[10px] font-semibold tabular-nums ${rowCounts[r] > 0 ? 'text-emerald-300' : 'text-violet-300/90'}`}
-            title={`Row ${r + 1}: ${rowCounts[r]} active → ${rowCounts[r]}× if perfect (display only; only columns score)`}
+            title={`Row ${r + 1}: ${rowCounts[r]} active → ${rowCounts[r]}× if perfect (rows score 100×n² like columns)`}
           >
             {rowCounts[r] > 0 ? `${rowCounts[r]}×` : '–'}
           </div>
@@ -43,14 +43,26 @@ export function LayoutGrid({ activeCells, rowCounts, colCounts, onToggleCell }: 
                 type="button"
                 onClick={() => onToggleCell(r, c)}
                 className={`relative w-10 h-10 rounded-full border-2 transition flex items-center justify-center overflow-hidden shadow-sm ${
-                  isActiveConfig ? 'bg-emerald-500 border-emerald-400 ring-2 ring-emerald-300/40' : 'border-violet-800/50'
+                  isActiveConfig
+                    ? 'bg-emerald-500 border-emerald-400 ring-2 ring-emerald-300/40'
+                    : 'border-violet-800/50'
                 }`}
                 title={isActiveConfig ? 'Active (tap to turn off)' : 'Tap to activate'}
               >
                 {isActiveConfig ? (
-                  <span className="text-[10px] font-bold text-white drop-shadow-[0_0_1px_rgba(0,0,0,0.8)]" aria-hidden>100</span>
+                  <span
+                    className="text-[10px] font-bold text-white drop-shadow-[0_0_1px_rgba(0,0,0,0.8)]"
+                    aria-hidden
+                  >
+                    100
+                  </span>
                 ) : (
-                  <img src={PATTY_RAW_URL} alt="" className="w-full h-full object-cover" aria-hidden />
+                  <img
+                    src={PATTY_RAW_URL}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    aria-hidden
+                  />
                 )}
               </button>
             );

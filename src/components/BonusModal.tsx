@@ -78,7 +78,9 @@ function Round2Intro({ onStart }: { onStart: () => void }) {
         </div>
       </div>
       <p className="text-[11px] text-violet-200/90 mb-1">Pull back spatula & release — one shot</p>
-      <p className="text-[10px] text-violet-300/70 mb-4">Land on a bun to multiply your Round 1 bonus</p>
+      <p className="text-[10px] text-violet-300/70 mb-4">
+        Land on a bun to multiply your Round 1 bonus
+      </p>
       <button
         type="button"
         onClick={onStart}
@@ -99,7 +101,10 @@ export function BonusModal({ turnScore, onComplete }: Props) {
   const [showIntro, setShowIntro] = useState(true);
   const [round1IntroDone, setRound1IntroDone] = useState(false);
   /** When round 1 ends with 16+ items, we show round 2 (flip onto bun). */
-  const [round1Result, setRound1Result] = useState<{ stackedCount: number; collapsed: boolean } | null>(null);
+  const [round1Result, setRound1Result] = useState<{
+    stackedCount: number;
+    collapsed: boolean;
+  } | null>(null);
   const [round2IntroDone, setRound2IntroDone] = useState(false);
 
   useEffect(() => {
@@ -150,7 +155,10 @@ export function BonusModal({ turnScore, onComplete }: Props) {
         style={{ minHeight: 0 }}
       >
         <header className="shrink-0 border-b border-violet-500/20 border-b-emerald-500/20 px-2.5 py-2 bg-gradient-to-r from-emerald-950/20 to-transparent">
-          <h2 id="bonus-title" className="text-center text-violet-100 font-bold text-sm sm:text-base">
+          <h2
+            id="bonus-title"
+            className="text-center text-violet-100 font-bold text-sm sm:text-base"
+          >
             Bonus round <span className="text-emerald-300">·</span>
           </h2>
           <p className="text-center text-violet-200/80 text-[11px] sm:text-xs mt-0.5">

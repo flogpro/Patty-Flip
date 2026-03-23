@@ -1,101 +1,20 @@
-import { useState, useCallback, useEffect, useMemo, memo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { OUTCOME_BURNT, BURGERS_PER_RUN, GRID_SIZE, type Outcome } from 'shared/constants';
+import {
+  getRun,
+  postStartRun,
+  postTurn,
+  postBonus,
+  SERVER_UNREACHABLE,
+  SERVER_UNREACHABLE_SHORT,
+} from './api/pattyFlipper';
 import { BONUS_MODAL_DELAY_MS, BONUS_TRIGGER_THRESHOLD } from './constants';
 import type { RunState, TurnResult, GamePhase, GameProps as Props } from './types/game';
+import { BonusModal } from './components/BonusModal';
 import { LayoutGrid } from './components/LayoutGrid';
 import { PlayViewHeader } from './components/PlayViewHeader';
 import { ResultGrid } from './components/ResultGrid';
-import { BonusModal } from './components/BonusModal';
-
-/** Reddit username: 3–20 chars, letters, numbers, underscore, hyphen (no leading u/) */
-const REDDIT_USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,20}$/;
-
-type RunOverScreenProps = {
-  run: RunState;
-  loading: boolean;
-  onNewRun: () => void;
-  shareUrl: string;
-  buildChallengeUrl: (toUsername: string) => string;
-};
-
-function RunOverScreen({ run, loading, onNewRun, shareUrl, buildChallengeUrl }: RunOverScreenProps) {
-  const [challengeUsername, setChallengeUsername] = useState('');
-  const [challengeError, setChallengeError] = useState<string | null>(null);
-
-  const handleShare = () => {
-    window.open(shareUrl, '_blank', 'noopener,noreferrer');
-  };
-
-  const handleChallenge = () => {
-    const trimmed = challengeUsername.trim().replace(/^u\//i, '');
-    if (!trimmed) {
-      setChallengeError('Enter a Reddit username');
-      return;
-    }
-    if (!REDDIT_USERNAME_REGEX.test(trimmed)) {
-      setChallengeError('Username must be 3–20 characters (letters, numbers, _ or -)');
-      return;
-    }
-    setChallengeError(null);
-    window.open(buildChallengeUrl(trimmed), '_blank', 'noopener,noreferrer');
-  };
-
-  return (
-    <div className="text-center py-1">
-      <p className="text-base font-bold text-violet-100 mb-2">Game over!</p>
-      <div className="rounded-lg bg-gradient-to-br from-emerald-500/20 via-violet-500/15 to-violet-500/20 border border-violet-500/40 border-t-emerald-400/30 py-3 px-4 mb-3">
-        <p className="text-xs text-violet-200/90 mb-1">Total points earned this run</p>
-        <p className="text-2xl font-bold text-violet-100">{run.totalScore.toLocaleString()} <span className="text-emerald-200">pts</span></p>
-      </div>
-
-      <div className="flex flex-col gap-2 mb-3">
-        <button
-          type="button"
-          onClick={handleShare}
-          className="w-full py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-emerald-600/80 to-violet-600/90 text-white hover:from-emerald-500 hover:to-violet-500 border border-emerald-400/40 border-violet-500/50 transition"
-        >
-          Share to Reddit (r/GamesOnReddit)
-        </button>
-
-        <div className="rounded-lg bg-violet-950/50 bg-gradient-to-r from-emerald-950/20 to-violet-950/50 border border-violet-600/30 border-l-emerald-500/25 p-2.5 text-left">
-          <p className="text-[11px] text-violet-200/90 mb-2">Challenge a friend</p>
-          <div className="flex gap-1.5 mb-1.5">
-            <input
-              type="text"
-              placeholder="Reddit username"
-              value={challengeUsername}
-              onChange={(e) => {
-                setChallengeUsername(e.target.value);
-                setChallengeError(null);
-              }}
-              onKeyDown={(e) => e.key === 'Enter' && handleChallenge()}
-              className="flex-1 min-w-0 px-2 py-1.5 rounded text-sm bg-violet-900/40 border border-violet-600/40 text-violet-100 placeholder-violet-500/60 focus:outline-none focus:ring-1 focus:ring-violet-400"
-              aria-label="Friend's Reddit username"
-            />
-            <button
-              type="button"
-              onClick={handleChallenge}
-              className="shrink-0 px-3 py-1.5 rounded-lg text-sm font-semibold bg-violet-500 text-[#1a1614] hover:bg-violet-400 transition"
-            >
-              Send challenge
-            </button>
-          </div>
-          {challengeError && <p className="text-[10px] text-rose-300">{challengeError}</p>}
-          <p className="text-[10px] text-violet-200/70 mt-1">Opens Reddit to send them a message with your score.</p>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        disabled={loading}
-        onClick={onNewRun}
-        className="w-full py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-emerald-600 to-violet-500 text-white hover:from-emerald-500 hover:to-violet-400 disabled:opacity-50 transition shadow-[0_0_8px_rgba(139,92,246,0.3)] shadow-[0_0_10px_rgba(16,185,129,0.2)] border border-emerald-400/40 border-violet-400/40"
-      >
-        New run
-      </button>
-    </div>
-  );
-}
+import { RunOverScreen } from './components/RunOverScreen';
 
 const emptyGrid = () => Array(GRID_SIZE * GRID_SIZE).fill(false) as boolean[];
 
@@ -103,7 +22,9 @@ export default function Game({ onError }: Props) {
   const [phase, setPhase] = useState<GamePhase>('idle');
   const [run, setRun] = useState<RunState | null>(null);
   const [activeCells, setActiveCells] = useState<boolean[]>(emptyGrid());
-  const [activeCellsForTurn, setActiveCellsForTurn] = useState<{ r: number; c: number }[] | null>(null);
+  const [activeCellsForTurn, setActiveCellsForTurn] = useState<{ r: number; c: number }[] | null>(
+    null
+  );
   const [guesses, setGuesses] = useState<Outcome[]>([]);
   const [turnResult, setTurnResult] = useState<TurnResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -116,8 +37,7 @@ export default function Game({ onError }: Props) {
   const buildActiveList = useCallback(() => {
     const list: { r: number; c: number }[] = [];
     for (let r = 0; r < GRID_SIZE; r++)
-      for (let c = 0; c < GRID_SIZE; c++)
-        if (activeCells[r * GRID_SIZE + c]) list.push({ r, c });
+      for (let c = 0; c < GRID_SIZE; c++) if (activeCells[r * GRID_SIZE + c]) list.push({ r, c });
     return list;
   }, [activeCells]);
   const getIndexForCell = useCallback(
@@ -129,36 +49,32 @@ export default function Game({ onError }: Props) {
   );
 
   const gridMultipliers = useMemo(() => {
-    const rowCounts = [0, 1, 2, 3, 4].map((r) =>
-      [0, 1, 2, 3, 4].filter((c) => activeCells[r * GRID_SIZE + c]).length
+    const rowCounts = [0, 1, 2, 3, 4].map(
+      (r) => [0, 1, 2, 3, 4].filter((c) => activeCells[r * GRID_SIZE + c]).length
     );
-    const colCounts = [0, 1, 2, 3, 4].map((c) =>
-      [0, 1, 2, 3, 4].filter((r) => activeCells[r * GRID_SIZE + c]).length
+    const colCounts = [0, 1, 2, 3, 4].map(
+      (c) => [0, 1, 2, 3, 4].filter((r) => activeCells[r * GRID_SIZE + c]).length
     );
     return { rowCounts, colCounts };
   }, [activeCells]);
 
   const fetchRun = useCallback(async () => {
     onError(null);
-    try {
-      const r = await fetch('/api/run');
-      if (r.ok) {
-        const d = await r.json();
-        setRun({
-          burgersUsed: d.burgersUsed,
-          totalScore: d.totalScore,
-          bestTurnScore: d.bestTurnScore ?? 0,
-          burgersRemaining: d.burgersRemaining ?? BURGERS_PER_RUN - d.burgersUsed,
-        });
-        setPhase('selectGrid');
-      } else {
-        setRun(null);
-        setPhase('idle');
-      }
-    } catch {
-      setRun(null);
-      setPhase('idle');
-      onError("Can't reach the game server. If you're running locally, start the API with npm run dev:server, or run npm run dev to start both client and API.");
+    const result = await getRun();
+    if (result.ok) {
+      setRun({
+        burgersUsed: result.data.burgersUsed,
+        totalScore: result.data.totalScore,
+        bestTurnScore: result.data.bestTurnScore,
+        burgersRemaining: result.data.burgersRemaining,
+      });
+      setPhase('selectGrid');
+      return;
+    }
+    setRun(null);
+    setPhase('idle');
+    if ('network' in result && result.network) {
+      onError(SERVER_UNREACHABLE);
     }
   }, [onError]);
 
@@ -170,10 +86,10 @@ export default function Game({ onError }: Props) {
     onError(null);
     setLoading(true);
     try {
-      const r = await fetch('/api/run/start', { method: 'POST' });
-      const data = await r.json();
-      if (!r.ok) {
-        onError(data.error || 'Failed to start run');
+      const result = await postStartRun();
+      if (!result.ok) {
+        if ('network' in result && result.network) onError(SERVER_UNREACHABLE);
+        else if ('message' in result) onError(result.message);
         return;
       }
       setRun({
@@ -183,8 +99,6 @@ export default function Game({ onError }: Props) {
         burgersRemaining: BURGERS_PER_RUN,
       });
       setPhase('selectGrid');
-    } catch {
-      onError("Can't reach the game server. If you're running locally, start the API with npm run dev:server, or run npm run dev to start both client and API.");
     } finally {
       setLoading(false);
     }
@@ -231,16 +145,13 @@ export default function Game({ onError }: Props) {
     onError(null);
     setLoading(true);
     try {
-      const r = await fetch('/api/run/turn', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activeCells: activeCellsForTurn, guesses }),
-      });
-      const data = await r.json();
-      if (!r.ok) {
-        onError(data.error || 'Turn failed');
+      const result = await postTurn({ activeCells: activeCellsForTurn, guesses });
+      if (!result.ok) {
+        if ('network' in result && result.network) onError(SERVER_UNREACHABLE);
+        else if ('message' in result) onError(result.message);
         return;
       }
+      const data = result.data;
       setTurnResult({
         outcomes: data.outcomes,
         turnScore: data.turnScore,
@@ -250,16 +161,14 @@ export default function Game({ onError }: Props) {
         runOver: data.runOver,
         bonusTriggered: data.bonusTriggered,
       });
-      setRun({
+      setRun((prev) => ({
         burgersUsed: data.burgersUsed,
         totalScore: data.totalScore,
-        bestTurnScore: Math.max(run?.bestTurnScore ?? 0, data.turnScore),
+        bestTurnScore: Math.max(prev?.bestTurnScore ?? 0, data.turnScore),
         burgersRemaining: data.burgersRemaining,
-      });
+      }));
       setPhase('flipping');
       setRevealedCount(0);
-    } catch {
-      onError("Can't reach the game server. If you're running locally, start the API with npm run dev:server, or run npm run dev to start both client and API.");
     } finally {
       setLoading(false);
     }
@@ -269,29 +178,21 @@ export default function Game({ onError }: Props) {
     onError(null);
     setLoading(true);
     try {
-      const r = await fetch('/api/run/bonus', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ multiplier }),
-      });
-      const data = await r.json();
-      if (!r.ok) {
-        onError(data.error || 'Bonus failed');
-        // Still dismiss modal and show result so user is not stuck
-        setTurnResult((prev) =>
-          prev
-            ? { ...prev, bonusMultiplier: multiplier }
-            : null
-        );
+      const result = await postBonus(multiplier);
+      if (!result.ok) {
+        if ('network' in result && result.network) onError(SERVER_UNREACHABLE_SHORT);
+        else if ('message' in result) onError(result.message);
+        setTurnResult((prev) => (prev ? { ...prev, bonusMultiplier: multiplier } : null));
         setBonusDismissed(true);
         return;
       }
-      setRun({
+      const data = result.data;
+      setRun((prev) => ({
         burgersUsed: data.burgersUsed,
         totalScore: data.totalScore,
-        bestTurnScore: run?.bestTurnScore ?? 0,
+        bestTurnScore: prev?.bestTurnScore ?? 0,
         burgersRemaining: data.burgersRemaining,
-      });
+      }));
       setTurnResult((prev) =>
         prev
           ? {
@@ -304,24 +205,20 @@ export default function Game({ onError }: Props) {
           : null
       );
       setBonusDismissed(true);
-    } catch {
-      onError("Can't reach the game server.");
-      // Still dismiss modal so user is not stuck
-      setTurnResult((prev) =>
-        prev ? { ...prev, bonusMultiplier: multiplier } : null
-      );
-      setBonusDismissed(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const canStartTurn = run && activeCount > 0 && activeCount <= run.burgersRemaining && run.burgersRemaining > 0;
+  const canStartTurn =
+    run && activeCount > 0 && activeCount <= run.burgersRemaining && run.burgersRemaining > 0;
 
   if (phase === 'idle') {
     return (
       <div className="text-center py-1">
-        <p className="text-violet-100/90 text-xs mb-3">100 burgers. Guess Cooked or Raw — perfect columns pay out.</p>
+        <p className="text-violet-100/90 text-xs mb-3">
+          100 burgers. Guess Cooked or Raw — perfect rows or columns pay out.
+        </p>
         <button
           type="button"
           disabled={loading}
@@ -335,8 +232,13 @@ export default function Game({ onError }: Props) {
   }
 
   /* One 5×5 grid: per-cell activation, then guessing, then flip/results. */
-  const isPlayView = phase === 'selectGrid' || phase === 'guessing' || phase === 'flipping' || (phase === 'turnSummary' && turnResult);
-  const showBonusModal = Boolean(turnResult?.bonusTriggered && bonusModalUnlocked && !bonusDismissed && turnResult?.turnScore != null);
+  const isPlayView = phase === 'selectGrid' || phase === 'guessing' || phase === 'flipping';
+  const showBonusModal = Boolean(
+    turnResult?.bonusTriggered &&
+    bonusModalUnlocked &&
+    !bonusDismissed &&
+    turnResult?.turnScore != null
+  );
   if (isPlayView && run) {
     return (
       <div className="bg-gradient-to-b from-emerald-950/10 via-transparent to-transparent rounded-lg -m-1 p-1">
@@ -355,12 +257,24 @@ export default function Game({ onError }: Props) {
 
         {phase === 'selectGrid' && (
           <>
-            <p className="text-center text-[11px] text-violet-200/80 mb-1.5">Tap patties to <span className="text-emerald-300 font-medium">activate</span> (green).</p>
+            <p className="text-center text-[11px] text-violet-200/80 mb-1.5">
+              Tap patties to <span className="text-emerald-300 font-medium">activate</span> (green).
+            </p>
             <p className="text-center text-[10px] text-violet-300/80 mb-1.5">
               {BONUS_TRIGGER_THRESHOLD}+ correct in a turn → Bonus round
               {activeCount >= BONUS_TRIGGER_THRESHOLD && (
-                <span className="ml-1.5 inline-flex items-center gap-1 rounded-full bg-emerald-500/25 px-1.5 py-0.5 text-[10px] font-medium text-emerald-200 ring-1 ring-emerald-400/40" title="Bonus available with this layout">
-                  <svg className="w-3 h-3 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                <span
+                  className="ml-1.5 inline-flex items-center gap-1 rounded-full bg-emerald-500/25 px-1.5 py-0.5 text-[10px] font-medium text-emerald-200 ring-1 ring-emerald-400/40"
+                  title="Bonus available with this layout"
+                >
+                  <svg
+                    className="w-3 h-3 shrink-0"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                    aria-hidden
+                  >
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
                   Bonus
                 </span>
               )}
@@ -369,36 +283,62 @@ export default function Game({ onError }: Props) {
         )}
         {phase === 'guessing' && (
           <>
-            <p className="text-center text-[11px] text-violet-200/90 mb-1.5">Tap active patties: Cooked (C) or Raw (R)</p>
+            <p className="text-center text-[11px] text-violet-200/90 mb-1.5">
+              Tap active patties: Cooked (C) or Raw (R)
+            </p>
             <p className="text-center text-[10px] text-violet-300/80 mb-1.5">
               {BONUS_TRIGGER_THRESHOLD}+ correct → Bonus round
             </p>
           </>
         )}
-        {(phase === 'flipping' || phase === 'turnSummary') && turnResult && (
+        {phase === 'flipping' && turnResult && (
           <div className="flex justify-center gap-3 mb-1.5 text-[10px]">
             <span className="flex items-center gap-1 text-emerald-300">
-              <span className="w-4 h-4 rounded-full border-2 border-emerald-400 bg-emerald-400/20" /> Correct
+              <span className="w-4 h-4 rounded-full border-2 border-emerald-400 bg-emerald-400/20" />{' '}
+              Correct
             </span>
             <span className="flex items-center gap-1 text-rose-300">
-              <span className="w-4 h-4 rounded-full border-2 border-rose-400 bg-rose-400/20" /> Wrong
+              <span className="w-4 h-4 rounded-full border-2 border-rose-400 bg-rose-400/20" />{' '}
+              Wrong
             </span>
           </div>
         )}
 
         <div className="relative w-full px-16 sm:px-20">
           {/* Spatulas: vertical (figure-skater) spin every 5–10s, staggered so never at same time */}
-          <div className="absolute left-0 -top-10 origin-top z-10" aria-hidden style={{ perspective: '280px' }}>
-            <div className="animate-spatula-pirouette" style={{ animationDuration: '10s', animationDelay: '0s' }}>
+          <div
+            className="absolute left-0 -top-10 origin-top z-10"
+            aria-hidden
+            style={{ perspective: '280px' }}
+          >
+            <div
+              className="animate-spatula-pirouette"
+              style={{ animationDuration: '10s', animationDelay: '0s' }}
+            >
               <div className="animate-dance origin-top" style={{ transform: 'scaleX(-1)' }}>
-                <img src="/spatula-character-left.png" alt="" className="h-24 w-auto object-contain object-top" />
+                <img
+                  src="/spatula-character-left.png"
+                  alt=""
+                  className="h-24 w-auto object-contain object-top"
+                />
               </div>
             </div>
           </div>
-          <div className="absolute right-0 -top-10 origin-top z-10" aria-hidden style={{ perspective: '280px' }}>
-            <div className="animate-spatula-pirouette" style={{ animationDuration: '10s', animationDelay: '5s' }}>
+          <div
+            className="absolute right-0 -top-10 origin-top z-10"
+            aria-hidden
+            style={{ perspective: '280px' }}
+          >
+            <div
+              className="animate-spatula-pirouette"
+              style={{ animationDuration: '10s', animationDelay: '5s' }}
+            >
               <div className="animate-dance origin-top">
-                <img src="/spatula-character-right.png" alt="" className="h-24 w-auto object-contain object-top" />
+                <img
+                  src="/spatula-character-right.png"
+                  alt=""
+                  className="h-24 w-auto object-contain object-top"
+                />
               </div>
             </div>
           </div>
@@ -429,38 +369,60 @@ export default function Game({ onError }: Props) {
             Active: {activeCount} · Perfect column or row = 100×n² pts
           </p>
         )}
-        {(phase === 'flipping' || phase === 'turnSummary') && turnResult && (
+        {phase === 'flipping' && turnResult && (
           <>
             <p className="text-center text-sm font-bold text-violet-100 mb-1">
-              {suspensefulFlip && phase === 'flipping' && activeCellsForTurn ? (() => {
-                const totalPatties = activeCellsForTurn.length;
-                const previousTotal = turnResult.totalScore - turnResult.turnScore;
-                const displayedTurnScore = totalPatties > 0 ? Math.round((revealedCount / totalPatties) * turnResult.turnScore) : 0;
-                const displayedTotal = previousTotal + displayedTurnScore;
-                return <>+{displayedTurnScore} pts · Total: {displayedTotal}</>;
-              })() : turnResult.bonusMultiplier != null ? (
+              {suspensefulFlip && activeCellsForTurn ? (
+                (() => {
+                  const totalPatties = activeCellsForTurn.length;
+                  const previousTotal = turnResult.totalScore - turnResult.turnScore;
+                  const displayedTurnScore =
+                    totalPatties > 0
+                      ? Math.round((revealedCount / totalPatties) * turnResult.turnScore)
+                      : 0;
+                  const displayedTotal = previousTotal + displayedTurnScore;
+                  return (
+                    <>
+                      +{displayedTurnScore} pts · Total: {displayedTotal}
+                    </>
+                  );
+                })()
+              ) : turnResult.bonusMultiplier != null ? (
                 <>
-                  <span className="block text-violet-200/90 text-xs font-normal mb-0.5">Turn winnings</span>
+                  <span className="block text-violet-200/90 text-xs font-normal mb-0.5">
+                    Turn winnings
+                  </span>
                   <span className="text-violet-100">
                     {turnResult.turnScore.toLocaleString()} × {turnResult.bonusMultiplier} ={' '}
-                    <strong className="text-violet-300">{(turnResult.turnScore * turnResult.bonusMultiplier).toLocaleString()} pts</strong>
+                    <strong className="text-violet-300">
+                      {(turnResult.turnScore * turnResult.bonusMultiplier).toLocaleString()} pts
+                    </strong>
                   </span>
-                  <span className="block text-violet-200/80 text-xs mt-1">Total score: {turnResult.totalScore.toLocaleString()}</span>
+                  <span className="block text-violet-200/80 text-xs mt-1">
+                    Total score: {turnResult.totalScore.toLocaleString()}
+                  </span>
                 </>
               ) : (
-                <>+{turnResult.turnScore} pts · Total: {turnResult.totalScore}</>
+                <>
+                  +{turnResult.turnScore} pts · Total: {turnResult.totalScore}
+                </>
               )}
             </p>
             {turnResult.bonusMultiplier != null && (
               <div className="text-center py-2 px-3 rounded-lg bg-gradient-to-br from-emerald-500/20 to-violet-500/15 border border-violet-500/40 border-t-emerald-400/30 mb-2">
                 <p className="text-xs text-violet-200/90 mb-0.5">Points earned this turn</p>
-                <p className="text-lg font-bold text-violet-100">+{(turnResult.turnScore * turnResult.bonusMultiplier).toLocaleString()} <span className="text-emerald-200">pts</span></p>
+                <p className="text-lg font-bold text-violet-100">
+                  +{(turnResult.turnScore * turnResult.bonusMultiplier).toLocaleString()}{' '}
+                  <span className="text-emerald-200">pts</span>
+                </p>
               </div>
             )}
           </>
         )}
-        {(phase === 'flipping' || phase === 'turnSummary') && turnResult && (
-          <p className="text-center text-[11px] text-violet-200/70 mb-2">Burgers left: {turnResult.burgersRemaining}</p>
+        {phase === 'flipping' && turnResult && (
+          <p className="text-center text-[11px] text-violet-200/70 mb-2">
+            Burgers left: {turnResult.burgersRemaining}
+          </p>
         )}
 
         {/* One primary action per step */}
@@ -484,12 +446,11 @@ export default function Game({ onError }: Props) {
             {loading ? 'Flipping…' : 'Flip'}
           </button>
         )}
-        {(phase === 'flipping' || phase === 'turnSummary') && turnResult && (
+        {phase === 'flipping' && turnResult && (
           <button
             type="button"
             disabled={
               (suspensefulFlip &&
-                phase === 'flipping' &&
                 activeCellsForTurn != null &&
                 revealedCount < activeCellsForTurn.length) ||
               (turnResult.bonusTriggered && !bonusDismissed)
@@ -498,7 +459,9 @@ export default function Game({ onError }: Props) {
               if (turnResult.runOver) setPhase('runOver');
               else {
                 setTurnResult(null);
-                setGuesses(activeCellsForTurn ? Array(activeCellsForTurn.length).fill(OUTCOME_BURNT) : []);
+                setGuesses(
+                  activeCellsForTurn ? Array(activeCellsForTurn.length).fill(OUTCOME_BURNT) : []
+                );
                 setPhase('guessing');
               }
             }}
@@ -544,9 +507,5 @@ export default function Game({ onError }: Props) {
     );
   }
 
-  return (
-    <div className="text-center text-violet-200/70 text-xs py-4">
-      Loading…
-    </div>
-  );
+  return <div className="text-center text-violet-200/70 text-xs py-4">Loading…</div>;
 }

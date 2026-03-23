@@ -13,9 +13,33 @@ const PULL_TO_VELOCITY = 4.8;
 
 /** Topgolf-style: targets spread out (x, y), radius, multiplier. Close = larger y (near launcher), Far = smaller y. */
 const TARGETS = [
-  { x: 85, y: 125, radius: 26, mult: BONUS_ROUND2_MULTIPLIERS[0], label: '2.5×', zone: 'close', color: 'emerald' },
-  { x: 250, y: 75, radius: 24, mult: BONUS_ROUND2_MULTIPLIERS[1], label: '5×', zone: 'medium', color: 'amber' },
-  { x: 170, y: 38, radius: 22, mult: BONUS_ROUND2_MULTIPLIERS[2], label: '10×', zone: 'far', color: 'yellow' },
+  {
+    x: 85,
+    y: 125,
+    radius: 26,
+    mult: BONUS_ROUND2_MULTIPLIERS[0],
+    label: '2.5×',
+    zone: 'close',
+    color: 'emerald',
+  },
+  {
+    x: 250,
+    y: 75,
+    radius: 24,
+    mult: BONUS_ROUND2_MULTIPLIERS[1],
+    label: '5×',
+    zone: 'medium',
+    color: 'amber',
+  },
+  {
+    x: 170,
+    y: 38,
+    radius: 22,
+    mult: BONUS_ROUND2_MULTIPLIERS[2],
+    label: '10×',
+    zone: 'far',
+    color: 'yellow',
+  },
 ] as const;
 
 /** Simulate arc for trajectory preview; returns array of points. */
@@ -49,13 +73,28 @@ type Props = {
 export function FlipOntoBunGame({ round1Multiplier, onComplete }: Props) {
   const [flying, setFlying] = useState(false);
   const [flyPos, setFlyPos] = useState<{ x: number; y: number } | null>(null);
-  const [result, setResult] = useState<{ multiplier: number; x: number; y: number; missReason?: 'short' | 'far' } | null>(null);
-  const [drag, setDrag] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
+  const [result, setResult] = useState<{
+    multiplier: number;
+    x: number;
+    y: number;
+    missReason?: 'short' | 'far';
+  } | null>(null);
+  const [drag, setDrag] = useState<{
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+  } | null>(null);
   const posRef = useRef({ x: CENTER_X, y: LAUNCHER_REST_Y });
   const velocityRef = useRef({ vx: 0, vy: 0 });
   const rafRef = useRef<number>(0);
   const arenaRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
+  const dragRef = useRef<{
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+  } | null>(null);
   dragRef.current = drag;
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
@@ -113,12 +152,15 @@ export function FlipOntoBunGame({ round1Multiplier, onComplete }: Props) {
     [flying, result, toLogicCoords]
   );
 
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!drag) return;
-    const { x, y } = toLogicCoords(e.clientX, e.clientY);
-    const pullY = Math.max(y, drag.startY);
-    setDrag((d) => (d ? { ...d, currentX: x, currentY: pullY } : null));
-  }, [drag, toLogicCoords]);
+  const onPointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!drag) return;
+      const { x, y } = toLogicCoords(e.clientX, e.clientY);
+      const pullY = Math.max(y, drag.startY);
+      setDrag((d) => (d ? { ...d, currentX: x, currentY: pullY } : null));
+    },
+    [drag, toLogicCoords]
+  );
 
   const onPointerUp = useCallback(
     (e: React.PointerEvent) => {
@@ -208,7 +250,12 @@ export function FlipOntoBunGame({ round1Multiplier, onComplete }: Props) {
       <div
         ref={arenaRef}
         className="relative rounded-xl border border-violet-600/25 border-t-amber-500/30 overflow-hidden mb-3 touch-none select-none w-full"
-        style={{ maxWidth: ARENA_WIDTH_PX, aspectRatio: `${ARENA_WIDTH_PX} / ${ARENA_HEIGHT_PX}`, height: 'auto', minHeight: 200 }}
+        style={{
+          maxWidth: ARENA_WIDTH_PX,
+          aspectRatio: `${ARENA_WIDTH_PX} / ${ARENA_HEIGHT_PX}`,
+          height: 'auto',
+          minHeight: 200,
+        }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -217,27 +264,37 @@ export function FlipOntoBunGame({ round1Multiplier, onComplete }: Props) {
       >
         <div
           className="absolute top-0 left-0 origin-top-left"
-          style={{ width: ARENA_WIDTH_PX, height: ARENA_HEIGHT_PX, transform: `scale(${arenaScale})` }}
+          style={{
+            width: ARENA_WIDTH_PX,
+            height: ARENA_HEIGHT_PX,
+            transform: `scale(${arenaScale})`,
+          }}
         >
           {/* Topgolf-style range: trapezoid / downward perspective */}
           <div
             className="absolute inset-0 opacity-90"
             style={{
-              background: 'linear-gradient(180deg, #0f172a 0%, #1e293b 25%, #334155 55%, #1e3a2f 85%, #14532d 100%)',
+              background:
+                'linear-gradient(180deg, #0f172a 0%, #1e293b 25%, #334155 55%, #1e3a2f 85%, #14532d 100%)',
               clipPath: 'polygon(0 0, 100% 0, 92% 100%, 8% 100%)',
             }}
           />
           <div
             className="absolute inset-0 opacity-30"
             style={{
-              background: 'repeating-linear-gradient(90deg, transparent, transparent 34px, rgba(255,255,255,0.06) 34px, rgba(255,255,255,0.06) 35px)',
+              background:
+                'repeating-linear-gradient(90deg, transparent, transparent 34px, rgba(255,255,255,0.06) 34px, rgba(255,255,255,0.06) 35px)',
               clipPath: 'polygon(0 0, 100% 0, 92% 100%, 8% 100%)',
             }}
           />
 
           {/* Spread-out targets (Topgolf style): each with ring + label */}
           {TARGETS.map((t) => (
-            <div key={t.label} className="absolute flex flex-col items-center" style={{ left: t.x - t.radius - 4, top: t.y - t.radius - 18 }}>
+            <div
+              key={t.label}
+              className="absolute flex flex-col items-center"
+              style={{ left: t.x - t.radius - 4, top: t.y - t.radius - 18 }}
+            >
               <div
                 className={`rounded-full border-2 flex items-center justify-center font-bold text-sm shadow-lg ${
                   t.color === 'emerald'
@@ -254,13 +311,20 @@ export function FlipOntoBunGame({ round1Multiplier, onComplete }: Props) {
               >
                 <span className="text-stone-900 drop-shadow-sm">{t.label}</span>
               </div>
-              <span className="text-[10px] font-medium text-violet-200 mt-0.5 capitalize">{t.zone}</span>
+              <span className="text-[10px] font-medium text-violet-200 mt-0.5 capitalize">
+                {t.zone}
+              </span>
             </div>
           ))}
 
           {/* Trajectory preview (dotted arc) */}
           {trajectoryPreview.length > 1 && (
-            <svg className="absolute pointer-events-none" width={ARENA_WIDTH_PX} height={ARENA_HEIGHT_PX} style={{ left: 0, top: 0 }}>
+            <svg
+              className="absolute pointer-events-none"
+              width={ARENA_WIDTH_PX}
+              height={ARENA_HEIGHT_PX}
+              style={{ left: 0, top: 0 }}
+            >
               <polyline
                 points={trajectoryPreview.map((p) => `${p.x},${p.y}`).join(' ')}
                 fill="none"
@@ -295,7 +359,9 @@ export function FlipOntoBunGame({ round1Multiplier, onComplete }: Props) {
                   top: (drag ? drag.currentY : LAUNCHER_REST_Y) - 8,
                   width: 48,
                   height: 24,
-                  transform: drag ? `rotate(${Math.atan2(drag.currentY - drag.startY, drag.currentX - drag.startX) * (180 / Math.PI) + 90}deg)` : 'rotate(0deg)',
+                  transform: drag
+                    ? `rotate(${Math.atan2(drag.currentY - drag.startY, drag.currentX - drag.startX) * (180 / Math.PI) + 90}deg)`
+                    : 'rotate(0deg)',
                 }}
                 aria-hidden
               >
@@ -303,9 +369,21 @@ export function FlipOntoBunGame({ round1Multiplier, onComplete }: Props) {
               </div>
               {drag && pullDist > 6 && (
                 <>
-                  <svg className="absolute pointer-events-none" width={ARENA_WIDTH_PX} height={ARENA_HEIGHT_PX} style={{ left: 0, top: 0 }}>
+                  <svg
+                    className="absolute pointer-events-none"
+                    width={ARENA_WIDTH_PX}
+                    height={ARENA_HEIGHT_PX}
+                    style={{ left: 0, top: 0 }}
+                  >
                     <defs>
-                      <marker id="flip-arrowhead" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+                      <marker
+                        id="flip-arrowhead"
+                        markerWidth="10"
+                        markerHeight="8"
+                        refX="9"
+                        refY="4"
+                        orient="auto"
+                      >
                         <polygon points="0 0, 10 4, 0 8" fill="rgb(251,191,36)" />
                       </marker>
                     </defs>
@@ -330,19 +408,28 @@ export function FlipOntoBunGame({ round1Multiplier, onComplete }: Props) {
                       className="absolute inset-y-0 left-0 rounded-l-lg transition-all duration-75"
                       style={{
                         width: `${powerPct}%`,
-                        background: 'linear-gradient(90deg, rgba(16,185,129,0.7), rgba(245,158,11,0.7), rgba(234,179,8,0.7))',
+                        background:
+                          'linear-gradient(90deg, rgba(16,185,129,0.7), rgba(245,158,11,0.7), rgba(234,179,8,0.7))',
                       }}
                     />
                     <div className="absolute inset-0 flex pointer-events-none">
-                      <div className="flex-1 border-r border-violet-600/60 flex items-center justify-center text-[9px] font-semibold text-emerald-200">2.5×</div>
-                      <div className="flex-1 border-r border-violet-600/60 flex items-center justify-center text-[9px] font-semibold text-amber-200">5×</div>
-                      <div className="flex-1 flex items-center justify-center text-[9px] font-semibold text-yellow-200">10×</div>
+                      <div className="flex-1 border-r border-violet-600/60 flex items-center justify-center text-[9px] font-semibold text-emerald-200">
+                        2.5×
+                      </div>
+                      <div className="flex-1 border-r border-violet-600/60 flex items-center justify-center text-[9px] font-semibold text-amber-200">
+                        5×
+                      </div>
+                      <div className="flex-1 flex items-center justify-center text-[9px] font-semibold text-yellow-200">
+                        10×
+                      </div>
                     </div>
                   </div>
                   <p
                     className={`absolute left-1/2 -translate-x-1/2 bottom-10 text-center text-sm font-semibold px-2 py-1 rounded-lg ${canLaunch ? 'bg-emerald-500/90 text-[#0f172a]' : 'bg-violet-800/95 text-violet-200'}`}
                   >
-                    {canLaunch ? 'Release to launch!' : `Pull more (${Math.round(pullDist)} / ${PULL_THRESHOLD_PX})`}
+                    {canLaunch
+                      ? 'Release to launch!'
+                      : `Pull more (${Math.round(pullDist)} / ${PULL_THRESHOLD_PX})`}
                   </p>
                 </>
               )}
@@ -361,11 +448,16 @@ export function FlipOntoBunGame({ round1Multiplier, onComplete }: Props) {
             {result.multiplier > 1 ? (
               <>Landed on {result.multiplier}× bun!</>
             ) : (
-              <>Missed — 1× {result.missReason === 'short' && '(too short)'} {result.missReason === 'far' && '(too far)'}</>
+              <>
+                Missed — 1× {result.missReason === 'short' && '(too short)'}{' '}
+                {result.missReason === 'far' && '(too far)'}
+              </>
             )}
           </p>
           <p className="text-violet-200/80 text-xs">
-            Round 1: {round1Multiplier}× × Round 2: {result.multiplier}× = <strong className="text-emerald-300">{round1Multiplier * result.multiplier}×</strong> total
+            Round 1: {round1Multiplier}× × Round 2: {result.multiplier}× ={' '}
+            <strong className="text-emerald-300">{round1Multiplier * result.multiplier}×</strong>{' '}
+            total
           </p>
           <p className="text-violet-200/60 text-[11px] mt-1 animate-pulse">Returning to game…</p>
         </div>

@@ -1,34 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
-
-type LeaderboardEntry = {
-  rank: number;
-  username: string;
-  score: number;
-  burgersUsed: number;
-  bestTurnScore: number;
-};
+import { getLeaderboard, SERVER_UNREACHABLE, type LeaderboardEntryDto } from './api/pattyFlipper';
 
 type Props = {
   onError: (msg: string | null) => void;
 };
 
 export default function Leaderboard({ onError }: Props) {
-  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [entries, setEntries] = useState<LeaderboardEntryDto[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchLeaderboard = useCallback(async () => {
     onError(null);
     setLoading(true);
     try {
-      const res = await fetch('/api/leaderboard');
-      const data = await res.json();
-      if (!res.ok) {
-        onError(data.error || 'Failed to load leaderboard');
+      const result = await getLeaderboard();
+      if (!result.ok) {
+        if ('network' in result && result.network) onError(SERVER_UNREACHABLE);
+        else if ('message' in result) onError(result.message);
         return;
       }
-      setEntries(data.entries ?? []);
-    } catch {
-      onError("Can't reach the game server. If you're running locally, start the API with npm run dev:server, or run npm run dev to start both client and API.");
+      setEntries(result.entries);
     } finally {
       setLoading(false);
     }
@@ -40,8 +31,12 @@ export default function Leaderboard({ onError }: Props) {
 
   return (
     <div className="bg-gradient-to-b from-emerald-950/10 to-transparent rounded-lg -m-1 p-1">
-      <h2 className="text-sm font-bold text-violet-100 mb-1">Leaderboard <span className="text-emerald-300">(top 10)</span></h2>
-      <p className="text-[11px] text-violet-200/70 mb-2">By score · tie-break: fewer burgers, best turn</p>
+      <h2 className="text-sm font-bold text-violet-100 mb-1">
+        Leaderboard <span className="text-emerald-300">(top 10)</span>
+      </h2>
+      <p className="text-[11px] text-violet-200/70 mb-2">
+        By score · tie-break: fewer burgers, best turn
+      </p>
 
       <button
         type="button"
@@ -70,7 +65,11 @@ export default function Leaderboard({ onError }: Props) {
               <span className="font-medium text-violet-100 truncate max-w-[140px]">
                 #{e.rank} u/{e.username}
               </span>
-              <span className={`font-bold shrink-0 ml-1 ${e.rank === 1 ? 'text-emerald-200' : 'text-violet-300'}`}>{e.score}</span>
+              <span
+                className={`font-bold shrink-0 ml-1 ${e.rank === 1 ? 'text-emerald-200' : 'text-violet-300'}`}
+              >
+                {e.score}
+              </span>
               <span className="text-[10px] text-violet-200/70 shrink-0">
                 {e.burgersUsed} · best {e.bestTurnScore}
               </span>
