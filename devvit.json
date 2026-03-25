@@ -22,6 +22,16 @@
     "redis": true,
     "reddit": true
   },
+  "menu": {
+    "items": [
+      {
+        "label": "Create Patty Flipper post",
+        "description": "Create a Patty Flipper game post",
+        "endpoint": "/internal/menu/create-patty-flipper-post",
+        "location": "subreddit"
+      }
+    ]
+  },
   "scripts": {
     "dev": "npm run build:client -- --watch & npm run build:server -- --watch",
     "build": "npm run build:client && npm run build:server"

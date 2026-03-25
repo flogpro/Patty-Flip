@@ -8,3 +8,5 @@ webroot/
 .DS_Store
 .cursor/
 *.tgz
+# Accidental nested copy (typo path) with its own .git
+Buger Flip Game/

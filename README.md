@@ -71,20 +71,20 @@ You can run the game in your browser with a mock API (no Reddit/Redis required):
 
 1. Run `npm run verify` then `npx devvit upload`.
 2. Install the app on your subreddit from the Reddit developer portal or subreddit settings.
-3. Create a custom post with the Patty Flipper app to play.
+3. From a subreddit’s **⋯** menu, choose **Create a Patty Flipper game post** (see [Menu actions](https://developers.reddit.com/docs/capabilities/client/menu-actions)), or create a custom post with the app as your community allows.
 
 ## Project layout
 
-| Area              | Purpose                                                                 |
-| ----------------- | ----------------------------------------------------------------------- |
-| `devvit.json`     | App config: name, post (`webroot`), server (`dist/server`), Redis       |
-| `src/`            | React client; `src/api/pattyFlipper.ts` wraps `/api/*` fetch calls      |
-| `src/devvit.tsx`  | Devvit blocks entry (custom post + menu); not typechecked with Vite app |
-| `server/index.ts` | Production Express app (Devvit Web + Redis)                             |
-| `server/local.ts` | Local mock API (in-memory Redis)                                        |
-| `server/shared/`  | Shared routes (`registerPattyRoutes.ts`), game logic, constants         |
-| `webroot/`        | Built React client (`npm run build:client`)                             |
-| `dist/server/`    | Compiled server (`npm run build:server`)                                |
+| Area              | Purpose                                                                          |
+| ----------------- | -------------------------------------------------------------------------------- |
+| `devvit.json`     | App config, `menu.items` → `/internal/menu/*` (create post), post, server, Redis |
+| `src/`            | React client; `src/api/pattyFlipper.ts` wraps `/api/*` fetch calls               |
+| `src/devvit.tsx`  | Blocks: custom post webview shell only; not typechecked with Vite app            |
+| `server/index.ts` | Production Express: game APIs + Devvit menu `UiResponse` routes                  |
+| `server/local.ts` | Local mock API (in-memory Redis)                                                 |
+| `server/shared/`  | Shared routes (`registerPattyRoutes.ts`), game logic, constants                  |
+| `webroot/`        | Built React client (`npm run build:client`)                                      |
+| `dist/server/`    | Compiled server (`npm run build:server`)                                         |
 
 ## API (server)
 
@@ -94,8 +94,13 @@ You can run the game in your browser with a mock API (no Reddit/Redis required):
 - `POST /api/run/bonus` — Body: `{ multiplier: number }` (integer 1–200). Applies bonus to the pending turn score. Returns `{ totalScore, bonusPoints?, burgersUsed, burgersRemaining }`.
 - `GET /api/leaderboard` — Top 10. Returns `{ entries: { rank, username, score, burgersUsed, bestTurnScore }[] }`.
 
+### Menu actions (Devvit Web)
+
+- `POST /internal/menu/create-patty-flipper-post` — Subreddit menu only (declared in `devvit.json` → `menu.items`). Body: `MenuItemRequest`. Response: [`UiResponse`](https://developers.reddit.com/docs/capabilities/client/menu-actions) (e.g. `showToast`). Creates the custom post via `reddit.submitCustomPost`.
+
 ## References
 
 - [Games on Reddit](https://developers.reddit.com/docs/introduction/intro-games)
 - [Devvit Web](https://developers.reddit.com/docs/capabilities/devvit-web/)
+- [Menu actions](https://developers.reddit.com/docs/capabilities/client/menu-actions)
 - [Redis](https://developers.reddit.com/docs/redis)
