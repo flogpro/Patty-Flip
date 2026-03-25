@@ -1,5 +1,6 @@
 /**
- * Devvit Web subreddit menu action: create a Patty Flipper custom post.
+ * Devvit Web subreddit menu action: create a Patty Flipper custom post via
+ * submitCustomPost (no Blocks / addCustomPostType — see Devvit changelog).
  * @see https://developers.reddit.com/docs/capabilities/client/menu-actions
  */
 import type { Express, Request, Response } from 'express';

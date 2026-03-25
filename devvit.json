@@ -1,9 +1,6 @@
 {
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
   "name": "pattyflip",
-  "blocks": {
-    "entry": "src/devvit.tsx"
-  },
   "post": {
     "dir": "webroot",
     "entrypoints": {

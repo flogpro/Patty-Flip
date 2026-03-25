@@ -2,6 +2,8 @@
 
 A quick guessing game for Reddit, built with [Devvit](https://developers.reddit.com/docs/). Activate patties on a 5×5 grill, guess **Cooked (C)** or **Raw (R)** for each, then flip. Each **perfect row** or **perfect column** of active patties (all guesses correct for that line) scores **100×n²** points (n = number of active patties in that row or column). Compete on the leaderboard by total score.
 
+This app is **Devvit Web only** (React client in `webroot/` + Node server). It does **not** use deprecated **`Devvit.addCustomPostType`** (Blocks). Reddit is deprecating Blocks custom posts ([changelog](https://developers.reddit.com/docs/changelog); see also [r/Devvit announcement](https://www.reddit.com/r/Devvit/comments/1r3xcm2/devvit_web_and_the_future_of_devvit/)). The interactive post is defined by `devvit.json` → `post.entrypoints` and created with **`reddit.submitCustomPost`** from the menu handler.
+
 ## Features
 
 - **Game**: 100 burgers per run. Each turn: select active patties (any pattern), guess C or R, flip. Perfect **rows and columns** score (100×n² each; a cell can contribute to both a row and a column score).
@@ -56,16 +58,25 @@ You can run the game in your browser with a mock API (no Reddit/Redis required):
 
    If port 3001 is in use, run with a different API port: `LOCAL_API_PORT=3002 npm run dev`.
 
+## `npm run dev` vs `npx devvit playtest` (what support is asking)
+
+| Command                               | What it does                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **`npm run dev`**                     | **Local only:** Vite + mock API on your machine. **Reddit never loads your app** here, so you will **not** see subreddit menu actions (e.g. “Create Patty Flipper post”) in the real Reddit UI. Use this to iterate on UI and game logic quickly.                                                                                                                        |
+| **`npx devvit playtest <subreddit>`** | **Reddit test install:** Uses your project’s `devvit.json` build, uploads/wires the app into the **playtest subreddit** you name (or `dev.subreddit` in config). This is how you verify **menu items**, **custom posts**, and server routes **inside Reddit**. Run `npm run build` first (or let playtest trigger the build defined in `devvit.json` → `scripts.build`). |
+
+If the **⋯** menu on the subreddit does not show your app’s action: confirm the app is **installed** on that subreddit, run **`npx devvit upload`** with the latest code (no Blocks `addCustomPostType`), then **playtest** or reinstall so Reddit picks up the new `menu` config.
+
 ## Development
 
 - **Build client and server**: `npm run build`
 - **Local dev**: `npm run dev` (client + local API with hot reload)
-- **Lint**: `npm run lint` (ESLint for `src/` and `server/`, excludes `src/devvit.tsx` — Devvit blocks use separate JSX)
+- **Lint**: `npm run lint` (ESLint for `src/` and `server/`)
 - **Format**: `npm run format` (Prettier) · **check only**: `npm run format:check`
-- **Typecheck**: `npm run check` (web client only; `src/devvit.tsx` is excluded — see `tsconfig.json`)
+- **Typecheck**: `npm run check` (Vite React client)
 - **Scoring sanity check**: `npm run test:logic`
 - **Full gate before upload**: `npm run verify` (lint, format check, typecheck, logic test, build)
-- **Playtest on Reddit**: From the project root, run `npx devvit playtest <subreddit>` (e.g. `npx devvit playtest mytestsub`). This uses your built `webroot/` and `dist/server/`; run `npm run build` first.
+- **Playtest on Reddit**: `npx devvit playtest <subreddit>` — see table above; not the same as `npm run dev`.
 
 ## Deploy to Reddit
 
@@ -75,16 +86,15 @@ You can run the game in your browser with a mock API (no Reddit/Redis required):
 
 ## Project layout
 
-| Area              | Purpose                                                                          |
-| ----------------- | -------------------------------------------------------------------------------- |
-| `devvit.json`     | App config, `menu.items` → `/internal/menu/*` (create post), post, server, Redis |
-| `src/`            | React client; `src/api/pattyFlipper.ts` wraps `/api/*` fetch calls               |
-| `src/devvit.tsx`  | Blocks: custom post webview shell only; not typechecked with Vite app            |
-| `server/index.ts` | Production Express: game APIs + Devvit menu `UiResponse` routes                  |
-| `server/local.ts` | Local mock API (in-memory Redis)                                                 |
-| `server/shared/`  | Shared routes (`registerPattyRoutes.ts`), game logic, constants                  |
-| `webroot/`        | Built React client (`npm run build:client`)                                      |
-| `dist/server/`    | Compiled server (`npm run build:server`)                                         |
+| Area              | Purpose                                                                                       |
+| ----------------- | --------------------------------------------------------------------------------------------- |
+| `devvit.json`     | App config: `post` (inline webview → `index.html`), `menu`, server, Redis — no `blocks` entry |
+| `src/`            | React source; `src/api/pattyFlipper.ts` wraps `/api/*` fetch calls                            |
+| `server/index.ts` | Production Express: game APIs + Devvit menu `UiResponse` routes                               |
+| `server/local.ts` | Local mock API (in-memory Redis)                                                              |
+| `server/shared/`  | Shared routes (`registerPattyRoutes.ts`), game logic, constants                               |
+| `webroot/`        | Built React client (`npm run build:client`)                                                   |
+| `dist/server/`    | Compiled server (`npm run build:server`)                                                      |
 
 ## API (server)
 

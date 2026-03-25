@@ -7,7 +7,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['webroot/**', 'dist/**', 'node_modules/**', 'src/devvit.tsx'],
+    ignores: ['webroot/**', 'dist/**', 'node_modules/**'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
