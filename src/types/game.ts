@@ -15,7 +15,7 @@ export type TurnResult = {
   burgersUsed: number;
   burgersRemaining: number;
   runOver: boolean;
-  /** True when 6+ counting-and-correct patties in this turn; bonus game is offered. */
+  /** True when enough active patties are guessed correctly this turn (see shared/bonusTrigger). */
   bonusTriggered?: boolean;
   /** Set after bonus round completes; used to show "turn × multiplier = winnings". */
   bonusMultiplier?: number;

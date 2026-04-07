@@ -7,6 +7,9 @@ export const OUTCOME_BURNT = 'patty';
 export const BURGERS_PER_RUN = 100;
 export const GRID_SIZE = 5;
 
+/** Minimum correct active patties in one turn to unlock the first bonus round. */
+export const BONUS_TRIGGER_THRESHOLD = 7;
+
 export type Outcome = 'bun' | 'patty';
 
 /** Per-row/per-column score when all active in that row/column are correct: 100 * n² */

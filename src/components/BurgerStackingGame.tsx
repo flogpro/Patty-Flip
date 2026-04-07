@@ -8,6 +8,7 @@ import {
   BONUS_SPAWN_INTERVAL_MS,
   BONUS_BOMB_CHANCE,
   BONUS_END_SCREEN_DURATION_MS,
+  BONUS_ROUND2_ITEM_THRESHOLD,
 } from '../constants';
 
 const BONUS_ITEMS = ['🍔', '🥬', '🍅', '🧅', '🥒', '🍟', '🧀', '🥓', '🌶️', '🥗'];
@@ -27,12 +28,15 @@ const ITEM_STACK_COLOR: Record<string, string> = {
   '🥗': 'bg-lime-400 border-lime-500',
 };
 const ITEM_SIZE = 40;
-const BUN_WIDTH = 80;
+/** Bottom bun plate (slightly smaller than original for tighter gameplay). */
+const BUN_WIDTH = 64;
 const BUN_HALF = BUN_WIDTH / 2;
 /** Stacked items on the bun: uniform width close to bun width (horizontal placement still varies via offset). */
 const STACK_ITEM_WIDTH_PX = BUN_WIDTH - 4;
 const TIMER_BAR_HEIGHT = 44;
 const CATCH_MARGIN = 4; // extra px overlap to count as catch
+/** Extra horizontal reach for bomb–bun collision (easier to register a dangerous hit). */
+const BOMB_HIT_EXTRA_PX = 10;
 /** Swipe movement multiplier for more responsive touch control. */
 const SWIPE_SENSITIVITY = 1.35;
 /** Stacked items are thin so the full stack never exceeds 1/4 of the game area. */
@@ -66,6 +70,7 @@ export function BurgerStackingGame({ onComplete }: Props) {
   const [bonusEnding, setBonusEnding] = useState<{
     stackedCount: number;
     collapsed: boolean;
+    continuesToRound2: boolean;
   } | null>(null);
   const [milestone, setMilestone] = useState<number | null>(null);
   const [bunX, setBunX] = useState(200);
@@ -122,7 +127,12 @@ export function BurgerStackingGame({ onComplete }: Props) {
       setTimeLeftMs(left);
       if (left <= 0) {
         clearInterval(interval);
-        setBonusEnding({ stackedCount: stackLengthRef.current, collapsed: false });
+        const stacked = stackLengthRef.current;
+        setBonusEnding({
+          stackedCount: stacked,
+          collapsed: false,
+          continuesToRound2: stacked >= BONUS_ROUND2_ITEM_THRESHOLD,
+        });
       }
     }, 100);
     return () => clearInterval(interval);
@@ -224,6 +234,7 @@ export function BurgerStackingGame({ onComplete }: Props) {
       const catchThreshold = playHeight - 30 - ITEM_SIZE;
       const speed = fallSpeedRef.current;
       const currentBunX = bunXRef.current;
+      const bombExtra = BOMB_HIT_EXTRA_PX;
       const bunLeft = currentBunX - BUN_HALF - CATCH_MARGIN;
       const bunRight = currentBunX + BUN_HALF + CATCH_MARGIN;
       const prev = fallingRef.current;
@@ -235,7 +246,9 @@ export function BurgerStackingGame({ onComplete }: Props) {
         const newY = f.y + speed * dt;
         if (newY >= catchThreshold) {
           const itemCenterX = f.x + ITEM_SIZE / 2;
-          if (itemCenterX >= bunLeft && itemCenterX <= bunRight) {
+          const hitLeft = f.type === 'bomb' ? bunLeft - bombExtra : bunLeft;
+          const hitRight = f.type === 'bomb' ? bunRight + bombExtra : bunRight;
+          if (itemCenterX >= hitLeft && itemCenterX <= hitRight) {
             if (f.type === 'bomb') {
               endBomb = true;
             } else {
@@ -258,7 +271,12 @@ export function BurgerStackingGame({ onComplete }: Props) {
         gameOverRef.current = true;
         setGameOver({ bomb: true });
         setTimeout(
-          () => setBonusEnding({ stackedCount: stackLengthRef.current, collapsed: true }),
+          () =>
+            setBonusEnding({
+              stackedCount: stackLengthRef.current,
+              collapsed: true,
+              continuesToRound2: false,
+            }),
           2600
         );
         return;
@@ -267,7 +285,12 @@ export function BurgerStackingGame({ onComplete }: Props) {
         gameOverRef.current = true;
         setGameOver({ bomb: false });
         setTimeout(
-          () => setBonusEnding({ stackedCount: stackLengthRef.current, collapsed: true }),
+          () =>
+            setBonusEnding({
+              stackedCount: stackLengthRef.current,
+              collapsed: true,
+              continuesToRound2: false,
+            }),
           2600
         );
         return;
@@ -361,7 +384,7 @@ export function BurgerStackingGame({ onComplete }: Props) {
           </div>
           <div
             className="rounded-b-full bg-amber-200 border-2 border-amber-400 shrink-0 w-full"
-            style={{ height: 20 }}
+            style={{ height: 16 }}
             title="Bun"
           />
         </div>
@@ -374,24 +397,38 @@ export function BurgerStackingGame({ onComplete }: Props) {
         {/* Game over message (bomb/collapse) - stays ~2.6s then transitions to bonus-end screen */}
         {gameOver && !bonusEnding && (
           <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/70 backdrop-blur-sm z-40 bonus-fade-in">
-            <p className="text-violet-100 font-semibold text-center px-4 text-sm sm:text-base">
-              {gameOver.bomb
-                ? 'Bomb hit the bun! Multiplier 1× for this round.'
-                : 'Stack fell! Multiplier 1× for this round.'}
-            </p>
+            <div className="text-center px-4 max-w-[280px]">
+              <p className="text-violet-100 font-semibold text-sm sm:text-base mb-1">
+                {gameOver.bomb ? 'Bomb hit the bun!' : 'Stack tipped over!'}
+              </p>
+              <p className="text-violet-200/85 text-xs sm:text-sm">
+                {gameOver.bomb
+                  ? 'Round 1 ends here — bonus multiplier is 1× for this turn.'
+                  : 'Too much offset — bonus multiplier is 1× for this turn.'}
+              </p>
+            </div>
           </div>
         )}
 
-        {/* Bonus round complete: visual cue before returning to game */}
+        {/* Bonus round complete: visual cue before Round 2 or main game */}
         {bonusEnding && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl bg-black/80 backdrop-blur-md z-50 bonus-end-screen">
-            <p className="text-violet-100 font-bold text-lg sm:text-xl mb-1">
-              Bonus round complete!
+          <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl bg-black/80 backdrop-blur-md z-50 bonus-end-screen px-3">
+            <p className="text-violet-100 font-bold text-lg sm:text-xl mb-1 text-center">
+              {bonusEnding.continuesToRound2 ? 'Round 1 complete!' : 'Bonus round complete!'}
             </p>
-            <p className="text-violet-200/90 text-sm mb-3">
-              Multiplier: {bonusEnding.collapsed ? 1 : 1 + bonusEnding.stackedCount}×
+            <p className="text-violet-200/90 text-sm mb-3 text-center">
+              {bonusEnding.continuesToRound2 ? (
+                <>
+                  Stacked {bonusEnding.stackedCount} — multiplier {1 + bonusEnding.stackedCount}×.
+                  Next: flip onto the bonus buns.
+                </>
+              ) : (
+                <>Multiplier: {bonusEnding.collapsed ? 1 : 1 + bonusEnding.stackedCount}×</>
+              )}
             </p>
-            <p className="text-violet-200/70 text-xs animate-pulse">Returning to game…</p>
+            <p className="text-violet-200/70 text-xs text-center animate-pulse">
+              {bonusEnding.continuesToRound2 ? 'Continue to Round 2…' : 'Returning to game…'}
+            </p>
           </div>
         )}
 

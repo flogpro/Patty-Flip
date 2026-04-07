@@ -8,6 +8,7 @@ import {
   SERVER_UNREACHABLE,
   SERVER_UNREACHABLE_SHORT,
 } from './api/pattyFlipper';
+import { isFirstRoundBonusEligible } from 'shared/bonusTrigger';
 import { BONUS_MODAL_DELAY_MS, BONUS_TRIGGER_THRESHOLD } from './constants';
 import type { RunState, TurnResult, GamePhase, GameProps as Props } from './types/game';
 import { BonusModal } from './components/BonusModal';
@@ -28,7 +29,7 @@ export default function Game({ onError }: Props) {
   const [guesses, setGuesses] = useState<Outcome[]>([]);
   const [turnResult, setTurnResult] = useState<TurnResult | null>(null);
   const [loading, setLoading] = useState(false);
-  const [suspensefulFlip, setSuspensefulFlip] = useState(true);
+  const [suspensefulFlip, setSuspensefulFlip] = useState(false);
   const [revealedCount, setRevealedCount] = useState(0);
   const [bonusDismissed, setBonusDismissed] = useState(false);
   const [bonusModalUnlocked, setBonusModalUnlocked] = useState(false);
@@ -152,6 +153,10 @@ export default function Game({ onError }: Props) {
         return;
       }
       const data = result.data;
+      const bonusTriggered =
+        guesses.length === data.outcomes.length
+          ? isFirstRoundBonusEligible(guesses, data.outcomes)
+          : data.bonusTriggered === true;
       setTurnResult({
         outcomes: data.outcomes,
         turnScore: data.turnScore,
@@ -159,7 +164,7 @@ export default function Game({ onError }: Props) {
         burgersUsed: data.burgersUsed,
         burgersRemaining: data.burgersRemaining,
         runOver: data.runOver,
-        bonusTriggered: data.bonusTriggered,
+        bonusTriggered,
       });
       setRun((prev) => ({
         burgersUsed: data.burgersUsed,
@@ -261,11 +266,12 @@ export default function Game({ onError }: Props) {
               Tap patties to <span className="text-emerald-300 font-medium">activate</span> (green).
             </p>
             <p className="text-center text-[10px] text-violet-300/80 mb-1.5">
-              {BONUS_TRIGGER_THRESHOLD}+ correct in a turn → Bonus round
+              {BONUS_TRIGGER_THRESHOLD}+ correct active patties after the flip → Bonus round (see
+              How to Play).
               {activeCount >= BONUS_TRIGGER_THRESHOLD && (
                 <span
                   className="ml-1.5 inline-flex items-center gap-1 rounded-full bg-emerald-500/25 px-1.5 py-0.5 text-[10px] font-medium text-emerald-200 ring-1 ring-emerald-400/40"
-                  title="Bonus available with this layout"
+                  title="Enough patties activated; you still need the flip results to match the bonus rules"
                 >
                   <svg
                     className="w-3 h-3 shrink-0"
@@ -287,7 +293,7 @@ export default function Game({ onError }: Props) {
               Tap active patties: Cooked (C) or Raw (R)
             </p>
             <p className="text-center text-[10px] text-violet-300/80 mb-1.5">
-              {BONUS_TRIGGER_THRESHOLD}+ correct → Bonus round
+              Bonus: {BONUS_TRIGGER_THRESHOLD}+ correct on active patties this turn.
             </p>
           </>
         )}
@@ -458,6 +464,10 @@ export default function Game({ onError }: Props) {
             onClick={() => {
               if (turnResult.runOver) setPhase('runOver');
               else {
+                // After a bonus, completeBonus sets bonusDismissed true; clear it so the next
+                // qualifying turn can open the bonus modal again.
+                setBonusDismissed(false);
+                setBonusModalUnlocked(false);
                 setTurnResult(null);
                 setGuesses(
                   activeCellsForTurn ? Array(activeCellsForTurn.length).fill(OUTCOME_BURNT) : []

@@ -33,5 +33,11 @@ export default tseslint.config(
     languageOptions: {
       globals: globals.node,
     },
+  },
+  {
+    files: ['esbuild.server.mjs'],
+    languageOptions: {
+      globals: globals.node,
+    },
   }
 );

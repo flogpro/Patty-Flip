@@ -3,7 +3,8 @@
  */
 import { Router, type Request, type Response } from 'express';
 import { BURGERS_PER_RUN, OUTCOME_COOKED, OUTCOME_BURNT, type Outcome } from './constants.js';
-import { randomOutcome, evaluateTurn, BONUS_TRIGGER_THRESHOLD } from './gameLogic.js';
+import { isFirstRoundBonusEligible } from './bonusTrigger.js';
+import { randomOutcome, evaluateTurn } from './gameLogic.js';
 
 const RUN_KEY_PREFIX = 'run:';
 const LB_SCORES_KEY = 'lb:scores';
@@ -178,8 +179,8 @@ export function createPattyFlipperRouter(options: {
 
       const outcomes: Outcome[] = [];
       for (let i = 0; i < burgersThisTurn; i++) outcomes.push(randomOutcome());
-      const { turnScore, countingCorrect } = evaluateTurn(activeCells, guesses, outcomes);
-      const bonusTriggered = countingCorrect >= BONUS_TRIGGER_THRESHOLD;
+      const { turnScore } = evaluateTurn(activeCells, guesses, outcomes);
+      const bonusTriggered = isFirstRoundBonusEligible(guesses, outcomes);
       if (bonusTriggered) state.pendingBonusTurnScore = turnScore;
 
       state.burgersUsed += burgersThisTurn;
@@ -207,7 +208,7 @@ export function createPattyFlipperRouter(options: {
         burgersUsed: state.burgersUsed,
         burgersRemaining: BURGERS_PER_RUN - state.burgersUsed,
         runOver,
-        bonusTriggered: bonusTriggered || undefined,
+        bonusTriggered,
       });
     } catch (e) {
       console.error('run/turn error', e);

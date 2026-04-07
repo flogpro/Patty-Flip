@@ -26,7 +26,7 @@ function indicesByColAndRow(activeCells: { r: number; c: number }[]) {
 }
 
 /**
- * Turn score and bonus eligibility in one pass over rows/columns (shared hot path).
+ * Turn score in one pass over rows/columns (shared hot path).
  * Perfect columns and perfect rows each score 100×n² (n = active count in that line).
  */
 export function evaluateTurn(
@@ -71,12 +71,11 @@ export function computeTurnScore(
   return evaluateTurn(activeCells, guesses, outcomes).turnScore;
 }
 
-/** Minimum number of "counting and correct" patties in one turn to trigger the bonus game. */
-export const BONUS_TRIGGER_THRESHOLD = 6;
+export { BONUS_TRIGGER_THRESHOLD } from './constants.js';
 
 /**
  * Count patties that are both correct and in at least one perfect row or column ("counting").
- * Used to determine if the bonus game triggers (count >= BONUS_TRIGGER_THRESHOLD).
+ * (Scoring / feedback only — first-round bonus uses {@link isFirstRoundBonusEligible} in bonusTrigger.ts.)
  */
 export function countCountingAndCorrect(
   activeCells: { r: number; c: number }[],

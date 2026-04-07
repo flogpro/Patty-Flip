@@ -6,7 +6,8 @@
   "scripts": {
     "build": "npm run build:client && npm run build:server",
     "build:client": "vite build",
-    "build:server": "tsc -p tsconfig.server.json",
+    "build:server": "node esbuild.server.mjs",
+    "check:server": "tsc -p tsconfig.server.json --noEmit",
     "dev": "concurrently -n client,api -c blue,green \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "vite",
     "dev:server": "tsx server/local.ts",
@@ -16,7 +17,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test:logic": "tsx server/shared/gameLogic.test.ts",
-    "verify": "npm run lint && npm run format:check && npm run check && npm run test:logic && npm run build"
+    "test:bonus": "tsx server/shared/bonusEligibility.test.ts",
+    "verify": "npm run lint && npm run format:check && npm run check && npm run check:server && npm run test:logic && npm run test:bonus && npm run build"
   },
   "dependencies": {
     "@devvit/web": "^0.12.16",
@@ -34,6 +36,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "concurrently": "^9.1.0",
+    "esbuild": "^0.25.0",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^9.1.2",
     "eslint-plugin-react": "^7.37.5",

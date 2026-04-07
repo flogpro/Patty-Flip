@@ -4,9 +4,8 @@
  * @see https://developers.reddit.com/docs/capabilities/client/menu-actions
  */
 import type { Express, Request, Response } from 'express';
-import { reddit } from '@devvit/reddit';
 import type { MenuItemRequest, UiResponse } from '@devvit/web/shared';
-import { context } from '@devvit/web/server';
+import { context, reddit } from '@devvit/web/server';
 
 export function registerCreatePattyFlipperMenuRoute(app: Express): void {
   app.post('/internal/menu/create-patty-flipper-post', async (req: Request, res: Response) => {
@@ -29,6 +28,7 @@ export function registerCreatePattyFlipperMenuRoute(app: Express): void {
       await reddit.submitCustomPost({
         subredditName,
         title: 'Patty Flipper',
+        entry: 'default',
         runAs: 'USER',
         userGeneratedContent: { text: 'Play Patty Flipper!' },
         textFallback: { text: 'Patty Flipper — open this post to play.' },

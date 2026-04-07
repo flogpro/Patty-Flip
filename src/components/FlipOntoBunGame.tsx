@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { BONUS_ROUND2_MULTIPLIERS } from '../constants';
+import { BONUS_ROUND2_MULTIPLIERS, PATTY_COOKED_URL } from '../constants';
 
 const ARENA_WIDTH_PX = 340;
 const ARENA_HEIGHT_PX = 240;
@@ -72,11 +72,13 @@ type Props = {
 
 export function FlipOntoBunGame({ round1Multiplier, onComplete }: Props) {
   const [flying, setFlying] = useState(false);
-  const [flyPos, setFlyPos] = useState<{ x: number; y: number } | null>(null);
+  const [flyPos, setFlyPos] = useState<{ x: number; y: number; rot: number } | null>(null);
+  const flyRotRef = useRef(0);
   const [result, setResult] = useState<{
     multiplier: number;
     x: number;
     y: number;
+    rot: number;
     missReason?: 'short' | 'far';
   } | null>(null);
   const [drag, setDrag] = useState<{
@@ -128,7 +130,8 @@ export function FlipOntoBunGame({ round1Multiplier, onComplete }: Props) {
       const vy = (dy / dist) * speed;
       posRef.current = { x: CENTER_X, y: LAUNCHER_REST_Y };
       velocityRef.current = { vx, vy };
-      setFlyPos(posRef.current);
+      flyRotRef.current = (Math.atan2(vy, vx) * 180) / Math.PI + 90;
+      setFlyPos({ ...posRef.current, rot: flyRotRef.current });
       setFlying(true);
     },
     []
@@ -194,24 +197,28 @@ export function FlipOntoBunGame({ round1Multiplier, onComplete }: Props) {
           if (d <= t.radius) {
             setFlyPos(null);
             setFlying(false);
-            setResult({ multiplier: t.mult, x: nx, y: ny });
+            flyRotRef.current += 520 * dt;
+            setResult({ multiplier: t.mult, x: nx, y: ny, rot: flyRotRef.current });
             return;
           }
         }
         if (ny > 190) {
           setFlyPos(null);
           setFlying(false);
-          setResult({ multiplier: 1, x: nx, y: ny, missReason: 'short' });
+          flyRotRef.current += 520 * dt;
+          setResult({ multiplier: 1, x: nx, y: ny, rot: flyRotRef.current, missReason: 'short' });
           return;
         }
         if (ny < 25) {
           setFlyPos(null);
           setFlying(false);
-          setResult({ multiplier: 1, x: nx, y: ny, missReason: 'far' });
+          flyRotRef.current += 520 * dt;
+          setResult({ multiplier: 1, x: nx, y: ny, rot: flyRotRef.current, missReason: 'far' });
           return;
         }
       }
-      setFlyPos({ x: nx, y: ny });
+      flyRotRef.current += 520 * dt;
+      setFlyPos({ x: nx, y: ny, rot: flyRotRef.current });
       rafRef.current = requestAnimationFrame(step);
     };
     rafRef.current = requestAnimationFrame(step);
@@ -227,6 +234,7 @@ export function FlipOntoBunGame({ round1Multiplier, onComplete }: Props) {
 
   const displayX = flyPos?.x ?? result?.x ?? (drag ? drag.currentX : CENTER_X);
   const displayY = flyPos?.y ?? result?.y ?? (drag ? drag.currentY : LAUNCHER_REST_Y);
+  const displayRot = flyPos?.rot ?? result?.rot ?? 0;
   const pullDist = drag
     ? Math.sqrt((drag.startX - drag.currentX) ** 2 + (drag.startY - drag.currentY) ** 2)
     : 0;
@@ -336,17 +344,23 @@ export function FlipOntoBunGame({ round1Multiplier, onComplete }: Props) {
             </svg>
           )}
 
-          {/* Burger */}
+          {/* Cooked patty projectile */}
           <div
-            className="absolute flex items-center justify-center text-2xl transition-none pointer-events-none drop-shadow-md"
+            className="absolute flex items-center justify-center transition-none pointer-events-none drop-shadow-md"
             style={{
               left: displayX - BURGER_SIZE / 2,
               top: displayY - BURGER_SIZE / 2,
               width: BURGER_SIZE,
               height: BURGER_SIZE,
+              transform: `rotate(${displayRot}deg)`,
             }}
           >
-            🍔
+            <img
+              src={PATTY_COOKED_URL}
+              alt=""
+              className="w-full h-full object-contain select-none"
+              draggable={false}
+            />
           </div>
 
           {/* Launcher + aim arrow + power bar with zones */}
@@ -459,7 +473,9 @@ export function FlipOntoBunGame({ round1Multiplier, onComplete }: Props) {
             <strong className="text-emerald-300">{round1Multiplier * result.multiplier}×</strong>{' '}
             total
           </p>
-          <p className="text-violet-200/60 text-[11px] mt-1 animate-pulse">Returning to game…</p>
+          <p className="text-violet-200/60 text-[11px] mt-1 animate-pulse">
+            Applying bonus to your score…
+          </p>
         </div>
       )}
     </div>

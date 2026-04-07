@@ -2,6 +2,9 @@ import { useState, useEffect, lazy, Suspense } from 'react';
 import Game from './Game';
 import { BONUS_TRIGGER_THRESHOLD, BONUS_ROUND2_ITEM_THRESHOLD } from './constants';
 
+/** Row-major indices for How to Play / Bonus diagrams: seven activated cells (any layout works in-game). */
+const BONUS_EXAMPLE_CELL_INDICES = new Set([0, 1, 2, 5, 6, 7, 10]);
+
 const Leaderboard = lazy(() => import('./Leaderboard'));
 
 type View = 'game' | 'leaderboard';
@@ -92,9 +95,10 @@ export default function App() {
                   <div>
                     <p className="font-medium text-amber-300/95 mb-1">1. Getting into the bonus</p>
                     <p className="mb-1.5">
-                      In a single turn, get <strong>{BONUS_TRIGGER_THRESHOLD}+ correct</strong>{' '}
-                      patties in at least one perfect column or row (no wrong guess in that
-                      column/row).
+                      In one turn, get at least <strong>{BONUS_TRIGGER_THRESHOLD}</strong> active
+                      patties <strong>correct</strong>: your guess (Cooked or Raw) must match how
+                      each patty actually landed. Pattern on the grill does not matter — only how
+                      many you got right.
                     </p>
                     <div className="flex justify-center my-1.5">
                       <div
@@ -102,29 +106,26 @@ export default function App() {
                         style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}
                       >
                         {Array.from({ length: 25 }, (_, i) => {
-                          const r = Math.floor(i / 5);
-                          const c = i % 5;
-                          const isCol = c === 2;
-                          const active = isCol && r < 4;
-                          const correct = active;
+                          const active = BONUS_EXAMPLE_CELL_INDICES.has(i);
                           return (
                             <div
                               key={i}
                               className={`w-5 h-5 rounded-full border flex items-center justify-center text-[8px] ${
-                                correct
+                                active
                                   ? 'bg-emerald-500 border-emerald-400 text-white'
                                   : 'bg-violet-900/50 border-violet-800/50'
                               }`}
                             >
-                              {correct ? '✓' : ''}
+                              {active ? '✓' : ''}
                             </div>
                           );
                         })}
                       </div>
                     </div>
                     <p className="text-violet-200/80">
-                      Example: one full column all correct → bonus triggered. After the turn, the
-                      bonus modal appears.
+                      Example: seven activated patties (any shape), all guessed right → bonus. You
+                      can activate more than seven; you still need {BONUS_TRIGGER_THRESHOLD}+
+                      correct after the flip. The bonus modal opens a few seconds after results.
                     </p>
                   </div>
 
@@ -160,8 +161,9 @@ export default function App() {
                     </p>
                     <p className="mb-1.5">
                       If you catch <strong>{BONUS_ROUND2_ITEM_THRESHOLD} or more</strong> items in
-                      Round 1, you get Round 2: one shot to flip the burger onto a target. Pull back
-                      the spatula and release; the dotted arc shows where the burger will go.
+                      Round 1, you get Round 2: one shot to flip the <strong>cooked patty</strong>{' '}
+                      onto a target. Pull back the spatula and release; the dotted arc shows where
+                      the patty will go (it spins in flight).
                     </p>
                     <div className="flex justify-center my-1.5">
                       <div
@@ -206,9 +208,7 @@ export default function App() {
                         style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}
                       >
                         {Array.from({ length: 25 }, (_, i) => {
-                          const r = Math.floor(i / 5);
-                          const c = i % 5;
-                          const active = r < 2 && c < 3;
+                          const active = BONUS_EXAMPLE_CELL_INDICES.has(i);
                           return (
                             <div
                               key={i}
@@ -223,7 +223,8 @@ export default function App() {
                       </div>
                     </div>
                     <p className="text-violet-200/80">
-                      Example: 2 rows × 3 columns = 6 patties this turn.
+                      Example: seven active patties (pattern is up to you). Bonus unlocks when{' '}
+                      {BONUS_TRIGGER_THRESHOLD}+ of your active guesses match the flip this turn.
                     </p>
                   </div>
                   <div>
@@ -284,9 +285,10 @@ export default function App() {
                     turn).
                   </p>
                   <p className="font-medium text-violet-200 pt-1 border-t border-violet-800/50 mt-1.5">
-                    <strong>Bonus round:</strong> Get {BONUS_TRIGGER_THRESHOLD} or more correct
-                    patties in a single turn (in perfect rows/columns) to trigger a bonus mini-game.
-                    Stack items on a bun for a turn score multiplier (1× + 1× per item).
+                    <strong>Bonus round:</strong> {BONUS_TRIGGER_THRESHOLD}+ correct active patties
+                    in one turn. Round 1: stack on the bun (1× + 1× per catch). Catch{' '}
+                    {BONUS_ROUND2_ITEM_THRESHOLD}+ in Round 1 for Round 2 (cooked patty → 2.5× / 5×
+                    / 10×).
                   </p>
                 </div>
               )}
