@@ -10,6 +10,19 @@ This app is **Devvit Web only** (React client in `webroot/` + Node server). It d
 - **Bonus**: Strong turns can trigger a bonus mini-game; the client applies a multiplier via `POST /api/run/bonus`.
 - **Leaderboard**: Top 10 by total score (tie-break: fewer burgers used, then best single turn).
 
+## For moderators (installing Patty Flipper)
+
+Patty Flipper is a **Devvit** community game. After the app is **approved and listed** in the Reddit [App Directory](https://developers.reddit.com/apps), moderators can install it on subreddits they manage (same flow as other Devvit apps).
+
+1. **Install** the app on your subreddit from the App Directory or your developer / mod tools, following Reddit’s current install UI.
+2. **Permissions this app requests**
+   - **Redis** — stores per-user run state and leaderboard entries for the game.
+   - **Reddit (submit post)** — used so the subreddit **⋯** menu can create a **Patty Flipper** custom post (see `devvit.json` → `menu.items`).
+3. **Starting a game for your community** — In the subreddit, open the **⋯** menu and choose **Create Patty Flipper post** (wording matches the installed app). That creates a custom post; members play inside the post.
+4. **Rules & safety** — The game is a light skill/guessing experience. Ensure it fits your subreddit rules and [Devvit / Reddit policies](https://developers.reddit.com/docs/devvit_rules).
+
+Questions about Devvit itself: [r/Devvit](https://www.reddit.com/r/Devvit/).
+
 ## Prerequisites
 
 - Node.js v22.2.0+
@@ -80,9 +93,29 @@ If the **⋯** menu on the subreddit does not show your app’s action: confirm 
 
 ## Deploy to Reddit
 
+### Upload / playtest (moderated subreddit)
+
 1. Run `npm run verify` then `npx devvit upload`.
 2. Install the app on your subreddit from the Reddit developer portal or subreddit settings.
-3. From a subreddit’s **⋯** menu, choose **Create a Patty Flipper game post** (see [Menu actions](https://developers.reddit.com/docs/capabilities/client/menu-actions)), or create a custom post with the app as your community allows.
+3. From a subreddit’s **⋯** menu, choose **Create Patty Flipper post** (see [Menu actions](https://developers.reddit.com/docs/capabilities/client/menu-actions)).
+
+### Submit for App Directory (public listing)
+
+To request listing so **any moderator** can install Patty Flipper:
+
+1. Complete playtesting on web and mobile; keep the **For moderators** and **Changelog** sections in this README up to date.
+2. Run `npm run verify`.
+3. Run `npx devvit publish --public` (see [Launch your app](https://developers.reddit.com/docs/guides/launch/launch-guide)). The CLI normally asks whether to **upload a source zip** for review (generated from your project, respecting `.gitignore`)—choose **Continue**, or set `DEVVIT_ALLOW_SOURCE_UPLOAD=1` for that run (see `.env.example`) to skip the prompt.
+4. Wait for Reddit’s review notification by email. After approval, the app can appear in the [App Directory](https://developers.reddit.com/apps).
+
+Each new version you want live requires publishing again (and review). Prefer batching non-urgent changes into fewer releases.
+
+## Changelog
+
+### 1.0.0
+
+- Devvit Web game: 5×5 grill, cooked/raw guesses, row/column scoring, optional bonus round, top-10 leaderboard.
+- Subreddit menu action creates Patty Flipper custom posts (`reddit.submitCustomPost`).
 
 ## Project layout
 
