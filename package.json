@@ -21,8 +21,8 @@
     "verify": "npm run lint && npm run format:check && npm run check && npm run check:server && npm run test:logic && npm run test:bonus && npm run build"
   },
   "dependencies": {
-    "@devvit/web": "^0.12.16",
-    "devvit": "^0.12.16",
+    "@devvit/web": "^0.12.18",
+    "devvit": "^0.12.18",
     "express": "^4.21.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
